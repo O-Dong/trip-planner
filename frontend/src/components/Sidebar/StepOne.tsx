@@ -1,13 +1,17 @@
-interface StepOneProps {
-  tripName: string;
-  onUpdate: (name: string) => void;
-  onNext: () => void;
-}
+import { useTripContext } from '../../contexts/TripContext';
 
-function StepOne({ tripName, onUpdate, onNext }: StepOneProps) {
+function StepOne() {
+  const { tripInfo, updateTripInfo, nextStep } = useTripContext();
+
   const handleNext = () => {
-    if (tripName.trim()) {
-      onNext();
+    if (tripInfo.name.trim()) {
+      nextStep();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && tripInfo.name.trim()) {
+      handleNext();
     }
   };
 
@@ -25,16 +29,18 @@ function StepOne({ tripName, onUpdate, onNext }: StepOneProps) {
       <div>
         <input
           type="text"
-          value={tripName}
-          onChange={(e) => onUpdate(e.target.value)}
+          value={tripInfo.name}
+          onChange={(e) => updateTripInfo('name', e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="여행 이름 입력"
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          autoFocus
         />
       </div>
 
       <button
         onClick={handleNext}
-        disabled={!tripName.trim()}
+        disabled={!tripInfo.name.trim()}
         className="w-full py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
       >
         다음

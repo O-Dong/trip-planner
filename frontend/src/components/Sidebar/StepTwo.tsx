@@ -1,84 +1,9 @@
-import type { TripInfo } from "../../types";
+import { useTripContext } from '../../contexts/TripContext';
+import { useTripDuration } from '../../hooks/useTripDuration';
 
-interface StepTwoProps {
-  startDate: string;
-  endDate: string;
-  onUpdate: (key: keyof TripInfo, value: string) => void;
-  onNext: () => void;
-  onPrev: () => void;
-}
-
-function StepTwo({ startDate, endDate, onUpdate, onNext, onPrev }: StepTwoProps) {
-  const calculateDuration = () => {
-    if (!startDate || !endDate) return null;
-    
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    const nights = diffDays - 1;
-    
-    return { nights, days: diffDays };
-  };
-
-  const getWarningMessage = () => {
-    if (!startDate || !endDate) return null;
-    
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const duration = calculateDuration();
-    
-    // 종료일이 시작일보다 빠른 경우
-    if (end < start) {
-      return {
-        type: 'error',
-        message: '⚡ 혹시 초능력자? 종료일이 시작일보다 빠릅니다!'
-      };
-    }
-    
-    // 당일치기인 경우
-    if (duration && duration.nights === 0) {
-      return {
-        type: 'warning',
-        message: '⚡ 당일치기 여행이시네요! 바쁘게 움직일 준비 되셨나요?'
-      };
-    }
-    
-    // 너무 긴 여행인 경우 (30일 이상)
-    if (duration && duration.days > 30) {
-      return {
-        type: 'warning',
-        message: `⚡ ${duration.nights}박 여행이라니! 정말 이렇게 떠나는 거 맞나요?`
-      };
-    }
-    
-    // 과거 날짜로 여행인 경우
-    if (start < today) {
-      return {
-        type: 'info',
-        message: '⚡ 과거로의 여행이네요! 추억을 정리하시는 건가요?'
-      };
-    }
-    
-    // 1년 이상 후의 여행인 경우
-    const oneYearLater = new Date(today);
-    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-    if (start > oneYearLater) {
-      return {
-        type: 'info',
-        message: '⚡ 꽤 먼 미래의 여행이네요! 계획형 인간이시군요!'
-      };
-    }
-    
-    return null;
-  };
-
-  const duration = calculateDuration();
-  const warning = getWarningMessage();
-  const isValid = startDate && endDate && new Date(startDate) <= new Date(endDate);
+function StepTwo() {
+  const { tripInfo, updateTripInfo, nextStep, prevStep } = useTripContext();
+  const { duration, warning, isValid } = useTripDuration(tripInfo.startDate, tripInfo.endDate);
 
   const getWarningStyle = (type: string) => {
     switch (type) {
@@ -111,8 +36,8 @@ function StepTwo({ startDate, endDate, onUpdate, onNext, onPrev }: StepTwoProps)
           </label>
           <input
             type="date"
-            value={startDate}
-            onChange={(e) => onUpdate('startDate', e.target.value)}
+            value={tripInfo.startDate}
+            onChange={(e) => updateTripInfo('startDate', e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
         </div>
@@ -123,9 +48,9 @@ function StepTwo({ startDate, endDate, onUpdate, onNext, onPrev }: StepTwoProps)
           </label>
           <input
             type="date"
-            value={endDate}
-            onChange={(e) => onUpdate('endDate', e.target.value)}
-            min={startDate}
+            value={tripInfo.endDate}
+            onChange={(e) => updateTripInfo('endDate', e.target.value)}
+            min={tripInfo.startDate}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
         </div>
@@ -151,13 +76,13 @@ function StepTwo({ startDate, endDate, onUpdate, onNext, onPrev }: StepTwoProps)
 
       <div className="flex gap-3">
         <button
-          onClick={onPrev}
+          onClick={prevStep}
           className="flex-1 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
         >
           이전
         </button>
         <button
-          onClick={onNext}
+          onClick={nextStep}
           disabled={!isValid}
           className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >

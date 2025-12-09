@@ -1,62 +1,74 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useRef } from 'react';
-import type { Place } from '../../types';
+import { useEffect, useRef, useMemo } from 'react';
+import { useTripContext } from '../../contexts/TripContext';
+import type { PlaceCategory } from '../../types';
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Leaflet 아이콘 초기화 (한 번만 실행)
+const initializeLeafletIcons = () => {
+  try {
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
+  } catch (e) {
+    console.warn('Leaflet icon initialization warning (ignored):', e);
+  }
+};
 
-interface MapViewProps {
-  places: Place[];
-}
+initializeLeafletIcons();
 
-function MapView({ places }: MapViewProps) {
-  // 일본 도쿄 중심 좌표
-  const center: [number, number] = [35.6762, 139.6503];
-  const zoom = 12;
+const TOKYO_CENTER: [number, number] = [35.6762, 139.6503];
+const DEFAULT_ZOOM = 12;
+
+function MapView() {
+  const { places, itinerary, selectedDay } = useTripContext();
   const mapRef = useRef<L.Map | null>(null);
 
-  useEffect(() => {
-    // 장소가 추가되면 지도 범위 조정
-    if (mapRef.current && places.length > 0) {
-      const bounds = L.latLngBounds(places.map(p => [p.lat, p.lng]));
-      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+  // 표시할 장소들 결정
+  const displayPlaces = useMemo(() => {
+    if (itinerary && itinerary.length > 0) {
+      return itinerary[selectedDay] || [];
     }
-  }, [places]);
+    return places;
+  }, [itinerary, selectedDay, places]);
 
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
-      '관광': '#3B82F6',
-      '식사': '#EF4444',
-      '쇼핑': '#8B5CF6',
-      '카페': '#F59E0B',
-      '기타': '#6B7280',
-    };
-    return colors[category] || '#6B7280';
-  };
+  // 경로선 좌표 생성
+  const routeCoordinates: [number, number][] = useMemo(() => {
+    return displayPlaces.map((p) => [p.lat, p.lng]);
+  }, [displayPlaces]);
 
-  const getCategoryEmoji = (category: string) => {
-    const emojis: { [key: string]: string } = {
-      '관광': '🏛️',
-      '식사': '🍽️',
-      '쇼핑': '🛍️',
-      '카페': '☕',
-      '기타': '📍',
+  // 장소가 변경되면 지도 범위 조정
+  useEffect(() => {
+    if (mapRef.current && displayPlaces.length > 0) {
+      const bounds = L.latLngBounds(displayPlaces.map((p) => [p.lat, p.lng]));
+      mapRef.current.fitBounds(bounds, { 
+        padding: [50, 50], 
+        maxZoom: 15 
+      });
+    }
+  }, [displayPlaces]);
+
+  const getCategoryEmoji = (category: PlaceCategory): string => {
+    const emojis: Record<PlaceCategory, string> = {
+      관광: '🏛️',
+      식사: '🍽️',
+      쇼핑: '🛍️',
+      카페: '☕',
+      기타: '📍',
     };
-    return emojis[category] || '📍';
+    return emojis[category];
   };
 
   return (
     <MapContainer
-      center={center}
-      zoom={zoom}
+      center={TOKYO_CENTER}
+      zoom={DEFAULT_ZOOM}
       className="w-full h-full"
       zoomControl={true}
       ref={mapRef}
@@ -65,12 +77,28 @@ function MapView({ places }: MapViewProps) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      
-      {/* 추가된 장소들 마커 표시 */}
-      {places.map((place) => (
+
+      {/* 경로선 표시 (일정이 생성되었고 2개 이상의 장소가 있을 때) */}
+      {itinerary && routeCoordinates.length > 1 && (
+        <Polyline
+          positions={routeCoordinates}
+          color="#3B82F6"
+          weight={3}
+          opacity={0.7}
+          dashArray="5, 10"
+        />
+      )}
+
+      {/* 장소 마커 표시 */}
+      {displayPlaces.map((place, index) => (
         <Marker key={place.id} position={[place.lat, place.lng]}>
           <Popup>
-            <div className="text-center">
+            <div className="text-center min-w-[150px]">
+              {itinerary && (
+                <div className="inline-flex items-center justify-center bg-blue-500 text-white rounded-full w-6 h-6 text-xs font-bold mb-2">
+                  {index + 1}
+                </div>
+              )}
               <p className="font-semibold text-sm mb-1">
                 {getCategoryEmoji(place.category)} {place.name}
               </p>

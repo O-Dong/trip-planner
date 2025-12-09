@@ -1,71 +1,67 @@
 import { useState } from 'react';
-import type { Place, PlaceCategory, TripInfo } from '../../types';
-import { getPlaceName, searchPlaces, type NominatimResult } from '../../utils/nominatim';
+import { useTripContext } from '../../contexts/TripContext';
+import { useSearch } from '../../hooks/useSearch';
+import { useTripDuration } from '../../hooks/useTripDuration';
+import { getPlaceName, hasProperName } from '../../utils/nominatim';
+import { distributeByDays } from '../../utils/routeOptimizer';
 import AddPlaceModal from './AddPlaceModal';
+import type { Place, PlaceCategory, NominatimResult } from '../../types';
 
+function StepThree() {
+  const { 
+    tripInfo, 
+    places, 
+    addPlace, 
+    removePlace, 
+    setItinerary, 
+    setSelectedDay,
+    setCurrentStep,
+    prevStep 
+  } = useTripContext();
+  
+  const { duration } = useTripDuration(tripInfo.startDate, tripInfo.endDate);
+  
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    isSearching,
+    hasSearched,
+    error,
+    performSearch,
+    clearResults,
+  } = useSearch();
 
-interface StepThreeProps {
-  tripInfo: TripInfo;
-  places: Place[];
-  onPrev: () => void;
-  onAddPlace: (place: Place) => void;
-  onRemovePlace: (id: string) => void;
-}
-
-function StepThree({ tripInfo, places, onPrev, onAddPlace, onRemovePlace }: StepThreeProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false); // 검색 실행 여부 추가
   const [showModal, setShowModal] = useState(false);
   const [selectedResult, setSelectedResult] = useState<NominatimResult | null>(null);
 
-  const calculateDuration = () => {
-    const start = new Date(tripInfo.startDate);
-    const end = new Date(tripInfo.endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    const nights = diffDays - 1;
-    return { nights, days: diffDays };
+  const handleSearch = () => {
+    performSearch();
   };
 
-  const duration = calculateDuration();
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    
-    setIsSearching(true);
-    setHasSearched(false); // 검색 시작 시 초기화
-    const results = await searchPlaces(searchQuery);
-    setSearchResults(results);
-    setHasSearched(true);
-    setIsSearching(false);
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      handleSearch();
+    }
   };
 
   const handleSelectPlace = (result: NominatimResult) => {
     const placeName = getPlaceName(result);
-    
-    // 이름이 명확한 장소인지 확인 (간단한 휴리스틱)
-    const hasProperName = result.address?.tourism || 
-                          result.address?.amenity || 
-                          result.address?.shop;
-    
-    if (hasProperName && placeName.length > 2) {
-      // 바로 추가
+
+    // 적절한 이름이 있으면 바로 추가
+    if (hasProperName(result)) {
       const newPlace: Place = {
-        id: `place-${Date.now()}`,
+        id: `place-${Date.now()}-${Math.random()}`,
         name: placeName,
         category: '관광',
         lat: parseFloat(result.lat),
         lng: parseFloat(result.lon),
         address: result.display_name,
       };
-      onAddPlace(newPlace);
-      setSearchResults([]);
-      setSearchQuery('');
-      setHasSearched(false); // 초기화
+      addPlace(newPlace);
+      clearResults();
     } else {
-      // 모달 띄우기
+      // 이름이 애매하면 모달로 확인
       setSelectedResult(result);
       setShowModal(true);
     }
@@ -74,29 +70,37 @@ function StepThree({ tripInfo, places, onPrev, onAddPlace, onRemovePlace }: Step
   const handleModalConfirm = (name: string, category: PlaceCategory) => {
     if (selectedResult) {
       const newPlace: Place = {
-        id: `place-${Date.now()}`,
+        id: `place-${Date.now()}-${Math.random()}`,
         name,
         category,
         lat: parseFloat(selectedResult.lat),
         lng: parseFloat(selectedResult.lon),
         address: selectedResult.display_name,
       };
-      onAddPlace(newPlace);
+      addPlace(newPlace);
       setShowModal(false);
       setSelectedResult(null);
-      setSearchResults([]);
-      setSearchQuery('');
-      setHasSearched(false);
+      clearResults();
     }
   };
 
+  const handleCreateItinerary = () => {
+    if (!duration || places.length === 0) return;
+
+    // 알고리즘으로 일정 생성
+    const generatedItinerary = distributeByDays(places, duration.days);
+    setItinerary(generatedItinerary);
+    setSelectedDay(0);
+    setCurrentStep(4);
+  };
+
   const getCategoryEmoji = (category: PlaceCategory) => {
-    const emojis = {
-      '관광': '🏛️',
-      '식사': '🍽️',
-      '쇼핑': '🛍️',
-      '카페': '☕',
-      '기타': '📍',
+    const emojis: Record<PlaceCategory, string> = {
+      관광: '🏛️',
+      식사: '🍽️',
+      쇼핑: '🛍️',
+      카페: '☕',
+      기타: '📍',
     };
     return emojis[category];
   };
@@ -106,22 +110,22 @@ function StepThree({ tripInfo, places, onPrev, onAddPlace, onRemovePlace }: Step
       {/* 여행 정보 요약 */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
         <h2 className="text-lg font-bold text-gray-800 mb-1">{tripInfo.name}</h2>
-        <p className="text-sm text-gray-600">
-          {duration.nights}박 {duration.days}일
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          {tripInfo.startDate} ~ {tripInfo.endDate}
-        </p>
+        {duration && (
+          <>
+            <p className="text-sm text-gray-600">
+              {duration.nights}박 {duration.days}일
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {tripInfo.startDate} ~ {tripInfo.endDate}
+            </p>
+          </>
+        )}
       </div>
 
       {/* 안내 메시지 */}
       <div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">
-          장소를 추가해주세요
-        </h3>
-        <p className="text-sm text-gray-500">
-          검색창에 장소명이나 주소를 입력하세요
-        </p>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">장소를 추가해주세요</h3>
+        <p className="text-sm text-gray-500">검색창에 장소명이나 주소를 입력하세요</p>
       </div>
 
       {/* 검색 영역 */}
@@ -131,7 +135,7 @@ function StepThree({ tripInfo, places, onPrev, onAddPlace, onRemovePlace }: Step
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            onKeyPress={handleKeyPress}
             placeholder="예: 도쿄 타워, 신주쿠 역"
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -144,13 +148,18 @@ function StepThree({ tripInfo, places, onPrev, onAddPlace, onRemovePlace }: Step
           </button>
         </div>
 
-        {/* 검색 결과 없음 메시지 */}
-        {hasSearched && searchResults.length === 0 && (
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="border border-red-300 bg-red-50 rounded-lg p-4 text-center">
+            <p className="text-red-700 font-medium text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* 검색 결과 없음 */}
+        {hasSearched && searchResults.length === 0 && !error && (
           <div className="border border-gray-300 rounded-lg p-6 text-center bg-gray-50">
             <p className="text-gray-700 font-medium mb-1">검색 결과가 없습니다</p>
-            <p className="text-sm text-gray-500">
-              다른 키워드로 다시 검색해보세요!
-            </p>
+            <p className="text-sm text-gray-500">다른 키워드로 다시 검색해보세요!</p>
           </div>
         )}
 
@@ -178,26 +187,22 @@ function StepThree({ tripInfo, places, onPrev, onAddPlace, onRemovePlace }: Step
       {/* 추가된 장소 리스트 */}
       {places.length > 0 && (
         <div className="space-y-2">
-          <h4 className="font-semibold text-gray-700">
-            추가된 장소 ({places.length})
-          </h4>
+          <h4 className="font-semibold text-gray-700">추가된 장소 ({places.length})</h4>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {places.map((place) => (
               <div
                 key={place.id}
                 className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
               >
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 text-sm">
                     {getCategoryEmoji(place.category)} {place.name}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                    {place.address}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-1">{place.address}</p>
                 </div>
                 <button
-                  onClick={() => onRemovePlace(place.id)}
-                  className="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                  onClick={() => removePlace(place.id)}
+                  className="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
                 >
                   삭제
                 </button>
@@ -210,12 +215,13 @@ function StepThree({ tripInfo, places, onPrev, onAddPlace, onRemovePlace }: Step
       {/* 버튼 영역 */}
       <div className="flex gap-3">
         <button
-          onClick={onPrev}
+          onClick={prevStep}
           className="flex-1 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
         >
           이전
         </button>
         <button
+          onClick={handleCreateItinerary}
           disabled={places.length === 0}
           className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >

@@ -1,2 +1,46 @@
 @import "tailwindcss";
 @import 'leaflet/dist/leaflet.css';
+
+/* 커스텀 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Leaflet 지도 z-index 조정 */
+.leaflet-container {
+  z-index: 1;
+}
+
+.leaflet-popup-pane {
+  z-index: 700;
+}
+
+.leaflet-tooltip-pane {
+  z-index: 800;
+}
