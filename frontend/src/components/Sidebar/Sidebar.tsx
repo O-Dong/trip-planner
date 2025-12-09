@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import type { Place, TripInfo } from '../../types';
 import StepOne from './StepOne';
 import StepTwo from './StepTwo';
 import StepThree from './StepThree';
+import type { Place, TripInfo } from '../../types';
 
+interface SidebarProps {
+  onPlacesChange?: (places: Place[]) => void;
+}
 
-function Sidebar() {
+function Sidebar({ onPlacesChange }: SidebarProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [tripInfo, setTripInfo] = useState<TripInfo>({
     name: '',
@@ -24,6 +27,22 @@ function Sidebar() {
 
   const updateTripInfo = (key: keyof TripInfo, value: string) => {
     setTripInfo(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleAddPlace = (place: Place) => {
+    const newPlaces = [...places, place];
+    setPlaces(newPlaces);
+    if (onPlacesChange) {
+      onPlacesChange(newPlaces);
+    }
+  };
+
+  const handleRemovePlace = (id: string) => {
+    const newPlaces = places.filter(p => p.id !== id);
+    setPlaces(newPlaces);
+    if (onPlacesChange) {
+      onPlacesChange(newPlaces);
+    }
   };
 
   return (
@@ -83,6 +102,8 @@ function Sidebar() {
             tripInfo={tripInfo}
             places={places}
             onPrev={handlePrevStep}
+            onAddPlace={handleAddPlace}
+            onRemovePlace={handleRemovePlace}
           />
         )}
       </div>
