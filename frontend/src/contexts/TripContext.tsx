@@ -8,14 +8,17 @@ interface TripContextType {
   itinerary: Place[][] | null;
   selectedDay: number;
   currentStep: number;
+  isGenerating: boolean;
 
   // 액션
   updateTripInfo: (key: keyof TripInfo, value: string) => void;
   addPlace: (place: Place) => void;
   removePlace: (id: string) => void;
+  updatePlace: (id: string, updates: Partial<Place>) => void;
   setItinerary: (itinerary: Place[][]) => void;
   setSelectedDay: (day: number) => void;
   setCurrentStep: (step: number) => void;
+  setIsGenerating: (isGenerating: boolean) => void;
   nextStep: () => void;
   prevStep: () => void;
   resetTrip: () => void;
@@ -35,6 +38,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [itinerary, setItinerary] = useState<Place[][] | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const updateTripInfo = (key: keyof TripInfo, value: string) => {
     setTripInfo((prev) => ({ ...prev, [key]: value }));
@@ -46,6 +50,12 @@ export function TripProvider({ children }: { children: ReactNode }) {
 
   const removePlace = (id: string) => {
     setPlaces((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const updatePlace = (id: string, updates: Partial<Place>) => {
+    setPlaces((prev) =>
+      prev.map((place) => (place.id === id ? { ...place, ...updates } : place))
+    );
   };
 
   const nextStep = () => {
@@ -62,6 +72,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
     setItinerary(null);
     setSelectedDay(0);
     setCurrentStep(1);
+    setIsGenerating(false);
   };
 
   return (
@@ -72,12 +83,15 @@ export function TripProvider({ children }: { children: ReactNode }) {
         itinerary,
         selectedDay,
         currentStep,
+        isGenerating,
         updateTripInfo,
         addPlace,
         removePlace,
+        updatePlace,
         setItinerary,
         setSelectedDay,
         setCurrentStep,
+        setIsGenerating,
         nextStep,
         prevStep,
         resetTrip,

@@ -12,10 +12,12 @@ function StepThree() {
     tripInfo, 
     places, 
     addPlace, 
-    removePlace, 
+    removePlace,
+    updatePlace,
     setItinerary, 
     setSelectedDay,
     setCurrentStep,
+    setIsGenerating,
     prevStep 
   } = useTripContext();
   
@@ -34,6 +36,7 @@ function StepThree() {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedResult, setSelectedResult] = useState<NominatimResult | null>(null);
+  const [editingPlace, setEditingPlace] = useState<Place | null>(null);
 
   const handleSearch = () => {
     performSearch();
@@ -48,7 +51,6 @@ function StepThree() {
   const handleSelectPlace = (result: NominatimResult) => {
     const placeName = getPlaceName(result);
 
-    // 적절한 이름이 있으면 바로 추가
     if (hasProperName(result)) {
       const newPlace: Place = {
         id: `place-${Date.now()}-${Math.random()}`,
@@ -61,14 +63,26 @@ function StepThree() {
       addPlace(newPlace);
       clearResults();
     } else {
-      // 이름이 애매하면 모달로 확인
       setSelectedResult(result);
+      setEditingPlace(null);
       setShowModal(true);
     }
   };
 
+  const handleEditPlace = (place: Place) => {
+    setEditingPlace(place);
+    setSelectedResult(null);
+    setShowModal(true);
+  };
+
   const handleModalConfirm = (name: string, category: PlaceCategory) => {
-    if (selectedResult) {
+    if (editingPlace) {
+      // 편집 모드
+      updatePlace(editingPlace.id, { name, category });
+      setShowModal(false);
+      setEditingPlace(null);
+    } else if (selectedResult) {
+      // 추가 모드
       const newPlace: Place = {
         id: `place-${Date.now()}-${Math.random()}`,
         name,
@@ -84,13 +98,18 @@ function StepThree() {
     }
   };
 
-  const handleCreateItinerary = () => {
+  const handleCreateItinerary = async () => {
     if (!duration || places.length === 0) return;
 
-    // 알고리즘으로 일정 생성
+    setIsGenerating(true);
+
+    // 약간의 딜레이 추가 (알고리즘이 너무 빨라서 로딩이 안 보일 수 있음)
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     const generatedItinerary = distributeByDays(places, duration.days);
     setItinerary(generatedItinerary);
     setSelectedDay(0);
+    setIsGenerating(false);
     setCurrentStep(4);
   };
 
@@ -148,14 +167,12 @@ function StepThree() {
           </button>
         </div>
 
-        {/* 에러 메시지 */}
         {error && (
           <div className="border border-red-300 bg-red-50 rounded-lg p-4 text-center">
             <p className="text-red-700 font-medium text-sm">{error}</p>
           </div>
         )}
 
-        {/* 검색 결과 없음 */}
         {hasSearched && searchResults.length === 0 && !error && (
           <div className="border border-gray-300 rounded-lg p-6 text-center bg-gray-50">
             <p className="text-gray-700 font-medium mb-1">검색 결과가 없습니다</p>
@@ -163,7 +180,6 @@ function StepThree() {
           </div>
         )}
 
-        {/* 검색 결과 */}
         {searchResults.length > 0 && (
           <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
             {searchResults.map((result) => (
@@ -200,12 +216,20 @@ function StepThree() {
                   </p>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-1">{place.address}</p>
                 </div>
-                <button
-                  onClick={() => removePlace(place.id)}
-                  className="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
-                >
-                  삭제
-                </button>
+                <div className="flex gap-2 ml-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleEditPlace(place)}
+                    className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => removePlace(place.id)}
+                    className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                  >
+                    삭제
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -229,13 +253,16 @@ function StepThree() {
         </button>
       </div>
 
-      {/* 장소 추가 모달 */}
-      {showModal && selectedResult && (
+      {/* 장소 추가/수정 모달 */}
+      {showModal && (editingPlace || selectedResult) && (
         <AddPlaceModal
-          suggestedName={getPlaceName(selectedResult)}
+          suggestedName={editingPlace ? editingPlace.name : getPlaceName(selectedResult!)}
+          initialCategory={editingPlace?.category}
+          isEditMode={!!editingPlace}
           onConfirm={handleModalConfirm}
           onCancel={() => {
             setShowModal(false);
+            setEditingPlace(null);
             setSelectedResult(null);
           }}
         />
