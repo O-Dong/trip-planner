@@ -1,14 +1,25 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTripContext } from '../../contexts/TripContext';
 import { useTripDuration } from '../../hooks/useTripDuration';
 import { calculateItineraryStats } from '../../utils/routeOptimizer';
 import type { PlaceCategory } from '../../types';
 
 function ItineraryView() {
-  const { tripInfo, itinerary, selectedDay, setSelectedDay, resetTrip } = useTripContext();
+  const { 
+    tripInfo, 
+    itinerary, 
+    selectedDay, 
+    setSelectedDay, 
+    resetTrip,
+    movePlaceInDay,
+    movePlaceBetweenDays,
+    removePlaceFromItinerary
+  } = useTripContext();
   const { duration } = useTripDuration(tripInfo.startDate, tripInfo.endDate);
+  
+  const [editMode, setEditMode] = useState(false);
+  const [movingPlace, setMovingPlace] = useState<{ dayIndex: number; placeIndex: number } | null>(null);
 
-  // 일정 통계 계산
   const stats = useMemo(() => {
     if (!itinerary) return null;
     return calculateItineraryStats(itinerary);
@@ -16,6 +27,39 @@ function ItineraryView() {
 
   const handleDayClick = (index: number) => {
     setSelectedDay(index);
+  };
+
+  const handleMoveUp = (placeIndex: number) => {
+    if (placeIndex > 0) {
+      movePlaceInDay(selectedDay, placeIndex, placeIndex - 1);
+    }
+  };
+
+  const handleMoveDown = (placeIndex: number) => {
+    if (!itinerary) return;
+    if (placeIndex < itinerary[selectedDay].length - 1) {
+      movePlaceInDay(selectedDay, placeIndex, placeIndex + 1);
+    }
+  };
+
+  const handleStartMove = (placeIndex: number) => {
+    setMovingPlace({ dayIndex: selectedDay, placeIndex });
+  };
+
+  const handleMoveToDay = (targetDay: number) => {
+    if (!movingPlace) return;
+    
+    if (movingPlace.dayIndex !== targetDay) {
+      movePlaceBetweenDays(movingPlace.dayIndex, targetDay, movingPlace.placeIndex);
+      setSelectedDay(targetDay);
+    }
+    setMovingPlace(null);
+  };
+
+  const handleRemovePlace = (placeIndex: number) => {
+    if (window.confirm('이 장소를 일정에서 삭제하시겠습니까?')) {
+      removePlaceFromItinerary(selectedDay, placeIndex);
+    }
   };
 
   const getCategoryEmoji = (category: PlaceCategory) => {
@@ -65,6 +109,55 @@ function ItineraryView() {
         )}
       </div>
 
+      {/* 편집 모드 토글 */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-700">일정 관리</h3>
+        <button
+          onClick={() => {
+            setEditMode(!editMode);
+            setMovingPlace(null);
+          }}
+          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            editMode
+              ? 'bg-blue-500 text-white hover:bg-blue-600'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          {editMode ? '편집 완료' : '편집 모드'}
+        </button>
+      </div>
+
+      {/* 날짜 이동 UI (편집 모드일 때만) */}
+      {editMode && movingPlace && (
+        <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+          <p className="text-yellow-800 font-medium text-sm mb-2">
+            이동할 날짜를 선택하세요
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {itinerary.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => handleMoveToDay(index)}
+                disabled={index === movingPlace.dayIndex}
+                className={`py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
+                  index === movingPlace.dayIndex
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-400'
+                }`}
+              >
+                {index + 1}일차로 이동
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setMovingPlace(null)}
+            className="w-full mt-2 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+          >
+            취소
+          </button>
+        </div>
+      )}
+
       {/* 일자 탭 */}
       <div>
         <h3 className="text-sm font-semibold text-gray-700 mb-3">날짜 선택</h3>
@@ -107,7 +200,11 @@ function ItineraryView() {
             {currentDayPlaces.map((place, index) => (
               <div
                 key={place.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                className={`bg-white border rounded-lg p-4 transition-all ${
+                  movingPlace?.dayIndex === selectedDay && movingPlace?.placeIndex === index
+                    ? 'border-yellow-400 bg-yellow-50 ring-2 ring-yellow-300'
+                    : 'border-gray-200 hover:border-blue-300'
+                }`}
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
@@ -126,6 +223,42 @@ function ItineraryView() {
                       </span>
                     </div>
                   </div>
+
+                  {/* 편집 버튼들 */}
+                  {editMode && (
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="위로"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === currentDayPlaces.length - 1}
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="아래로"
+                      >
+                        ▼
+                      </button>
+                      <button
+                        onClick={() => handleStartMove(index)}
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded text-xs"
+                        title="다른 날로 이동"
+                      >
+                        📅
+                      </button>
+                      <button
+                        onClick={() => handleRemovePlace(index)}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded text-xs"
+                        title="삭제"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

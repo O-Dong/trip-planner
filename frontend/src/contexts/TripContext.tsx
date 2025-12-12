@@ -22,6 +22,11 @@ interface TripContextType {
   nextStep: () => void;
   prevStep: () => void;
   resetTrip: () => void;
+  
+  // 일정 편집 액션
+  movePlaceInDay: (dayIndex: number, fromIndex: number, toIndex: number) => void;
+  movePlaceBetweenDays: (fromDay: number, toDay: number, placeIndex: number) => void;
+  removePlaceFromItinerary: (dayIndex: number, placeIndex: number) => void;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
@@ -56,6 +61,37 @@ export function TripProvider({ children }: { children: ReactNode }) {
     setPlaces((prev) =>
       prev.map((place) => (place.id === id ? { ...place, ...updates } : place))
     );
+  };
+
+  // 같은 날 내에서 장소 순서 변경
+  const movePlaceInDay = (dayIndex: number, fromIndex: number, toIndex: number) => {
+    if (!itinerary) return;
+    
+    const newItinerary = [...itinerary];
+    const dayPlaces = [...newItinerary[dayIndex]];
+    const [movedPlace] = dayPlaces.splice(fromIndex, 1);
+    dayPlaces.splice(toIndex, 0, movedPlace);
+    newItinerary[dayIndex] = dayPlaces;
+    setItinerary(newItinerary);
+  };
+
+  // 다른 날로 장소 이동
+  const movePlaceBetweenDays = (fromDay: number, toDay: number, placeIndex: number) => {
+    if (!itinerary) return;
+    
+    const newItinerary = [...itinerary];
+    const [movedPlace] = newItinerary[fromDay].splice(placeIndex, 1);
+    newItinerary[toDay].push(movedPlace);
+    setItinerary(newItinerary);
+  };
+
+  // 일정에서 장소 삭제
+  const removePlaceFromItinerary = (dayIndex: number, placeIndex: number) => {
+    if (!itinerary) return;
+    
+    const newItinerary = [...itinerary];
+    newItinerary[dayIndex].splice(placeIndex, 1);
+    setItinerary(newItinerary);
   };
 
   const nextStep = () => {
@@ -95,6 +131,9 @@ export function TripProvider({ children }: { children: ReactNode }) {
         nextStep,
         prevStep,
         resetTrip,
+        movePlaceInDay,
+        movePlaceBetweenDays,
+        removePlaceFromItinerary,
       }}
     >
       {children}
