@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { Place, TripInfo } from '../types';
+import { clearTripData, loadTripData, saveTripData } from '../utils/storages';
 
 interface TripContextType {
   // 상태
@@ -44,6 +45,36 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [selectedDay, setSelectedDay] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // 앱 시작 시 localStorage에서 복구
+  useEffect(() => {
+    const savedData = loadTripData();
+    if (savedData) {
+      setTripInfo(savedData.tripInfo);
+      setPlaces(savedData.places);
+      setItinerary(savedData.itinerary);
+      setSelectedDay(savedData.selectedDay);
+      setCurrentStep(savedData.currentStep);
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // 상태 변경 시 자동 저장 (초기화 후에만)
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    // Step 1에서 아무것도 입력 안 했으면 저장 안 함
+    if (currentStep === 1 && !tripInfo.name) return;
+
+    saveTripData({
+      tripInfo,
+      places,
+      itinerary,
+      selectedDay,
+      currentStep,
+    });
+  }, [tripInfo, places, itinerary, selectedDay, currentStep, isInitialized]);
 
   const updateTripInfo = (key: keyof TripInfo, value: string) => {
     setTripInfo((prev) => ({ ...prev, [key]: value }));
@@ -109,6 +140,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
     setSelectedDay(0);
     setCurrentStep(1);
     setIsGenerating(false);
+    clearTripData(); // localStorage도 초기화
   };
 
   return (

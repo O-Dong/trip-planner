@@ -97,7 +97,7 @@ function ItineraryView() {
       {/* 성공 메시지 + 통계 */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <p className="text-green-700 font-medium text-sm mb-1">
-          여행 일정이 완성되었습니다!
+          ✅ 여행 일정이 완성되었습니다!
         </p>
         <p className="text-green-600 text-xs">
           이동 거리를 최소화하여 최적의 동선으로 배치했습니다.
@@ -131,7 +131,7 @@ function ItineraryView() {
       {editMode && movingPlace && (
         <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
           <p className="text-yellow-800 font-medium text-sm mb-2">
-            이동할 날짜를 선택하세요
+            📍 이동할 날짜를 선택하세요
           </p>
           <div className="grid grid-cols-3 gap-2">
             {itinerary.map((_, index) => (
