@@ -80,8 +80,8 @@ function ItineraryView() {
   return (
     <div className="space-y-6">
       {/* 여행 정보 헤더 */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-        <h2 className="text-lg font-bold text-gray-800 mb-1">{tripInfo.name}</h2>
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 text-center">
+        <h2 className="text-xl font-title text-gray-800 mb-1">{tripInfo.name}</h2>
         {duration && stats && (
           <>
             <p className="text-sm text-gray-600">
@@ -100,7 +100,7 @@ function ItineraryView() {
           ✅ 여행 일정이 완성되었습니다!
         </p>
         <p className="text-green-600 text-xs">
-          이동 거리를 최소화하여 최적의 동선으로 배치했습니다.
+          완성된 일정을 확인하고, 자유롭게 수정해보세요
         </p>
         {stats && stats.total.distance > 0 && (
           <p className="text-green-600 text-xs mt-1">

@@ -127,8 +127,8 @@ function StepThree() {
   return (
     <div className="space-y-6">
       {/* 여행 정보 요약 */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-        <h2 className="text-lg font-bold text-gray-800 mb-1">{tripInfo.name}</h2>
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 text-center">
+        <h2 className="text-xl font-title text-gray-800 mb-1">{tripInfo.name}</h2>
         {duration && (
           <>
             <p className="text-sm text-gray-600">
@@ -143,7 +143,7 @@ function StepThree() {
 
       {/* 안내 메시지 */}
       <div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">장소를 추가해주세요</h3>
+        <h3 className="text-2xl font-title text-gray-800 mb-2">장소를 추가해주세요</h3>
         <p className="text-sm text-gray-500">검색창에 장소명이나 주소를 입력하세요</p>
       </div>
 

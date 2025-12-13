@@ -3,28 +3,21 @@
 
 /* 커스텀 폰트 */
 @font-face {
-  font-family: 'DaeguBukseongro';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2511-1@1.0/DaeguBukseongro-ExtraBold.woff2') format('woff2');
-  font-weight: 800;
-  font-display: swap;
-}
-
-@font-face {
   font-family: 'DaraeHandwriting';
   src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_three@1.0/drfont_daraehand.woff') format('woff');
   font-weight: normal;
   font-display: swap;
 }
 
-/* 기본 폰트 설정 */
+/* 기본 폰트 설정 - 전체에 다래손글씨 적용 */
 body {
   font-family: 'DaraeHandwriting', sans-serif;
 }
 
-/* 제목용 폰트 클래스 */
+/* 제목용 폰트 클래스 (나중에 변경 가능) */
 .font-title {
-  font-family: 'DaeguBukseongro', sans-serif;
-  font-weight: 800;
+  font-family: 'DaraeHandwriting', sans-serif;
+  font-weight: normal;
 }
 
 /* 커스텀 애니메이션 */

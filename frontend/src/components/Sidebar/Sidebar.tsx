@@ -13,7 +13,7 @@ function Sidebar() {
       <div className="p-6 h-full flex flex-col">
         {/* 헤더 */}
         <div className="border-b pb-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">여행 플래너</h1>
+          <h1 className="text-2xl font-bold font-title text-gray-800">여행 플래너</h1>
           <p className="text-sm text-gray-500 mt-1">나만의 여행 계획을 만들어보세요</p>
         </div>
 
