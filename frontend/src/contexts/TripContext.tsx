@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import type { Place, TripInfo } from '../types';
 import { clearTripData, loadTripData, saveTripData } from '../utils/storages';
+
+/* eslint-disable react-refresh/only-export-components */
 
 interface TripContextType {
   // 상태
@@ -58,7 +60,8 @@ export function TripProvider({ children }: { children: ReactNode }) {
       setCurrentStep(savedData.currentStep);
     }
     setIsInitialized(true);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 의도적으로 빈 배열: 마운트 시에만 실행
 
   // 상태 변경 시 자동 저장 (초기화 후에만)
   useEffect(() => {
@@ -76,64 +79,71 @@ export function TripProvider({ children }: { children: ReactNode }) {
     });
   }, [tripInfo, places, itinerary, selectedDay, currentStep, isInitialized]);
 
-  const updateTripInfo = (key: keyof TripInfo, value: string) => {
+  // useCallback으로 함수 메모이제이션
+  const updateTripInfo = useCallback((key: keyof TripInfo, value: string) => {
     setTripInfo((prev) => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
-  const addPlace = (place: Place) => {
+  const addPlace = useCallback((place: Place) => {
     setPlaces((prev) => [...prev, place]);
-  };
+  }, []);
 
-  const removePlace = (id: string) => {
+  const removePlace = useCallback((id: string) => {
     setPlaces((prev) => prev.filter((p) => p.id !== id));
-  };
+  }, []);
 
-  const updatePlace = (id: string, updates: Partial<Place>) => {
+  const updatePlace = useCallback((id: string, updates: Partial<Place>) => {
     setPlaces((prev) =>
       prev.map((place) => (place.id === id ? { ...place, ...updates } : place))
     );
-  };
+  }, []);
 
   // 같은 날 내에서 장소 순서 변경
-  const movePlaceInDay = (dayIndex: number, fromIndex: number, toIndex: number) => {
-    if (!itinerary) return;
-    
-    const newItinerary = [...itinerary];
-    const dayPlaces = [...newItinerary[dayIndex]];
-    const [movedPlace] = dayPlaces.splice(fromIndex, 1);
-    dayPlaces.splice(toIndex, 0, movedPlace);
-    newItinerary[dayIndex] = dayPlaces;
-    setItinerary(newItinerary);
-  };
+  const movePlaceInDay = useCallback((dayIndex: number, fromIndex: number, toIndex: number) => {
+    setItinerary((prevItinerary) => {
+      if (!prevItinerary) return prevItinerary;
+      
+      const newItinerary = [...prevItinerary];
+      const dayPlaces = [...newItinerary[dayIndex]];
+      const [movedPlace] = dayPlaces.splice(fromIndex, 1);
+      dayPlaces.splice(toIndex, 0, movedPlace);
+      newItinerary[dayIndex] = dayPlaces;
+      return newItinerary;
+    });
+  }, []);
 
   // 다른 날로 장소 이동
-  const movePlaceBetweenDays = (fromDay: number, toDay: number, placeIndex: number) => {
-    if (!itinerary) return;
-    
-    const newItinerary = [...itinerary];
-    const [movedPlace] = newItinerary[fromDay].splice(placeIndex, 1);
-    newItinerary[toDay].push(movedPlace);
-    setItinerary(newItinerary);
-  };
+  const movePlaceBetweenDays = useCallback((fromDay: number, toDay: number, placeIndex: number) => {
+    setItinerary((prevItinerary) => {
+      if (!prevItinerary) return prevItinerary;
+      
+      const newItinerary = [...prevItinerary];
+      const [movedPlace] = newItinerary[fromDay].splice(placeIndex, 1);
+      newItinerary[toDay] = [...newItinerary[toDay], movedPlace];
+      return newItinerary;
+    });
+  }, []);
 
   // 일정에서 장소 삭제
-  const removePlaceFromItinerary = (dayIndex: number, placeIndex: number) => {
-    if (!itinerary) return;
-    
-    const newItinerary = [...itinerary];
-    newItinerary[dayIndex].splice(placeIndex, 1);
-    setItinerary(newItinerary);
-  };
+  const removePlaceFromItinerary = useCallback((dayIndex: number, placeIndex: number) => {
+    setItinerary((prevItinerary) => {
+      if (!prevItinerary) return prevItinerary;
+      
+      const newItinerary = [...prevItinerary];
+      newItinerary[dayIndex] = newItinerary[dayIndex].filter((_, idx) => idx !== placeIndex);
+      return newItinerary;
+    });
+  }, []);
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     setCurrentStep((prev) => Math.min(prev + 1, 4));
-  };
+  }, []);
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
+  }, []);
 
-  const resetTrip = () => {
+  const resetTrip = useCallback(() => {
     setTripInfo(INITIAL_TRIP_INFO);
     setPlaces([]);
     setItinerary(null);
@@ -141,7 +151,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
     setCurrentStep(1);
     setIsGenerating(false);
     clearTripData(); // localStorage도 초기화
-  };
+  }, []);
 
   return (
     <TripContext.Provider

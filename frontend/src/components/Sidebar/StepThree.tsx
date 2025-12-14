@@ -54,7 +54,7 @@ function StepThree() {
 
     if (hasProperName(result)) {
       const newPlace: Place = {
-        id: `place-${Date.now()}-${Math.random()}`,
+        id: crypto.randomUUID(), // 더 안전한 ID 생성
         name: placeName,
         category: '관광',
         lat: parseFloat(result.lat),
@@ -85,7 +85,7 @@ function StepThree() {
     } else if (selectedResult) {
       // 추가 모드
       const newPlace: Place = {
-        id: `place-${Date.now()}-${Math.random()}`,
+        id: crypto.randomUUID(), // 더 안전한 ID 생성
         name,
         category,
         lat: parseFloat(selectedResult.lat),

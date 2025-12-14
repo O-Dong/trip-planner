@@ -6,11 +6,15 @@ export interface TripDuration {
 export function calculateTripDuration(startDate: string, endDate: string): TripDuration | null {
   if (!startDate || !endDate) return null;
 
+  // 타임존 이슈 방지: 시간을 00:00:00으로 정규화
   const start = new Date(startDate);
   const end = new Date(endDate);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
   
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  // 일수 계산 (Math.floor 사용으로 정확도 향상)
+  const diffTime = end.getTime() - start.getTime();
+  const days = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
   const nights = days - 1;
 
   return { nights, days };
@@ -26,6 +30,9 @@ export function validateDates(startDate: string, endDate: string): DateWarning |
 
   const start = new Date(startDate);
   const end = new Date(endDate);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
