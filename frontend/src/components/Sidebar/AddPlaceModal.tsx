@@ -1,21 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import type { PlaceCategory } from '../../types';
+import { CATEGORIES, CATEGORY_EMOJIS } from '../../utils/categoryHelpers';
 
 interface AddPlaceModalProps {
   suggestedName: string;
   onConfirm: (name: string, category: PlaceCategory) => void;
   onCancel: () => void;
 }
-
-const CATEGORIES: PlaceCategory[] = ['관광', '식사', '쇼핑', '카페', '기타'];
-
-const CATEGORY_EMOJIS: Record<PlaceCategory, string> = {
-  관광: '🏛️',
-  식사: '🍽️',
-  쇼핑: '🛍️',
-  카페: '☕',
-  기타: '📍',
-};
 
 function AddPlaceModal({ suggestedName, onConfirm, onCancel }: AddPlaceModalProps) {
   const [name, setName] = useState(suggestedName);

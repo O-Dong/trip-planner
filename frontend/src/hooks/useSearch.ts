@@ -13,7 +13,7 @@ interface UseSearchReturn {
   clearResults: () => void;
 }
 
-export function useSearch(debounceMs: number = 500): UseSearchReturn {
+export function useSearch(): UseSearchReturn {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -55,7 +55,7 @@ export function useSearch(debounceMs: number = 500): UseSearchReturn {
     setError(null);
   }, []);
 
-  // 디바운싱 (자동 검색은 비활성화, 수동 검색만 지원)
+  // 검색어가 비워지면 상태 초기화
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);

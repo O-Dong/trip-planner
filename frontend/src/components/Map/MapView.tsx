@@ -1,16 +1,18 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef, useMemo } from 'react';
 import { useTripContext } from '../../contexts/TripContext';
-import type { PlaceCategory } from '../../types';
+import { getCategoryEmoji } from '../../utils/categoryHelpers';
 
-// Leaflet 아이콘 초기화 (한 번만 실행)
+// Leaflet 아이콘 초기화
 const initializeLeafletIcons = () => {
   try {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    // 안전한 타입 체크 및 삭제
+    if ('_getIconUrl' in L.Icon.Default.prototype) {
+      delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
+    }
+    
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
       iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -54,17 +56,6 @@ function MapView() {
     }
   }, [displayPlaces]);
 
-  const getCategoryEmoji = (category: PlaceCategory): string => {
-    const emojis: Record<PlaceCategory, string> = {
-      관광: '🏛️',
-      식사: '🍽️',
-      쇼핑: '🛍️',
-      카페: '☕',
-      기타: '📍',
-    };
-    return emojis[category];
-  };
-
   return (
     <MapContainer
       center={TOKYO_CENTER}
@@ -78,7 +69,7 @@ function MapView() {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {/* 경로선 표시 (일정이 생성되었고 2개 이상의 장소가 있을 때) */}
+      {/* 경로선 표시 */}
       {itinerary && routeCoordinates.length > 1 && (
         <Polyline
           positions={routeCoordinates}

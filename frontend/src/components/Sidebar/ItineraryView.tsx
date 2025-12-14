@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTripContext } from '../../contexts/TripContext';
 import { useTripDuration } from '../../hooks/useTripDuration';
 import { calculateItineraryStats } from '../../utils/routeOptimizer';
-import type { PlaceCategory } from '../../types';
+import { getCategoryEmoji } from '../../utils/categoryHelpers';
 
 function ItineraryView() {
   const { 
@@ -62,17 +62,6 @@ function ItineraryView() {
     }
   };
 
-  const getCategoryEmoji = (category: PlaceCategory) => {
-    const emojis: Record<PlaceCategory, string> = {
-      관광: '🏛️',
-      식사: '🍽️',
-      쇼핑: '🛍️',
-      카페: '☕',
-      기타: '📍',
-    };
-    return emojis[category];
-  };
-
   if (!itinerary) return null;
 
   const currentDayPlaces = itinerary[selectedDay] || [];
@@ -127,7 +116,7 @@ function ItineraryView() {
         </button>
       </div>
 
-      {/* 날짜 이동 UI (편집 모드일 때만) */}
+      {/* 날짜 이동 UI (편집 모드) */}
       {editMode && movingPlace && (
         <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
           <p className="text-yellow-800 font-medium text-sm mb-2">

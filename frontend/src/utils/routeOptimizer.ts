@@ -1,8 +1,8 @@
-import type { Place } from "../types";
+import type { Place, ItineraryStats } from "../types";
 
-// 두 지점 사이의 거리 계산 (Haversine formula)
+// 두 지점 사이의 거리 계산 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // 지구 반지름 (km)
+  const R = 6371; // 지구 반지름
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -36,7 +36,7 @@ function twoOptOptimization(places: Place[]): Place[] {
 
   let route = [...places];
   let improved = true;
-  let maxIterations = 100;
+  const maxIterations = 100;
   let iteration = 0;
 
   while (improved && iteration < maxIterations) {
@@ -59,7 +59,7 @@ function twoOptOptimization(places: Place[]): Place[] {
           calculateDistance(route[next_i].lat, route[next_i].lng, route[next_j].lat, route[next_j].lng);
 
         // 개선되면 교차
-        if (newDist < currentDist - 0.001) { // 부동소수점 오차 고려
+        if (newDist < currentDist - 0.001) {
           // i+1부터 j까지 역순으로 변경
           const newRoute = [
             ...route.slice(0, next_i),
@@ -76,7 +76,7 @@ function twoOptOptimization(places: Place[]): Place[] {
   return route;
 }
 
-// Nearest Neighbor로 초기 경로 생성 (개선됨)
+// Nearest Neighbor로 초기 경로 생성
 function nearestNeighborRoute(places: Place[]): Place[] {
   if (places.length <= 1) return places;
 

@@ -4,6 +4,7 @@ import { useSearch } from '../../hooks/useSearch';
 import { useTripDuration } from '../../hooks/useTripDuration';
 import { getPlaceName, hasProperName } from '../../utils/nominatim';
 import { distributeByDays } from '../../utils/routeOptimizer';
+import { getCategoryEmoji } from '../../utils/categoryHelpers';
 import AddPlaceModal from './AddPlaceModal';
 import type { Place, PlaceCategory, NominatimResult } from '../../types';
 
@@ -42,7 +43,7 @@ function StepThree() {
     performSearch();
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       handleSearch();
     }
@@ -113,17 +114,6 @@ function StepThree() {
     setCurrentStep(4);
   };
 
-  const getCategoryEmoji = (category: PlaceCategory) => {
-    const emojis: Record<PlaceCategory, string> = {
-      관광: '🏛️',
-      식사: '🍽️',
-      쇼핑: '🛍️',
-      카페: '☕',
-      기타: '📍',
-    };
-    return emojis[category];
-  };
-
   return (
     <div className="space-y-6">
       {/* 여행 정보 요약 */}
@@ -154,7 +144,7 @@ function StepThree() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder="예: 도쿄 타워, 신주쿠 역"
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -257,8 +247,6 @@ function StepThree() {
       {showModal && (editingPlace || selectedResult) && (
         <AddPlaceModal
           suggestedName={editingPlace ? editingPlace.name : getPlaceName(selectedResult!)}
-          initialCategory={editingPlace?.category}
-          isEditMode={!!editingPlace}
           onConfirm={handleModalConfirm}
           onCancel={() => {
             setShowModal(false);
